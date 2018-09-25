@@ -12,10 +12,6 @@ class MultistreamMoleculePipeline implements Serializable {
         // to the globals (job steps, etc) available to the job itself
         this.job = job
 
-        // lazy aliases so we can e.g. env.ENVVAR instead of job.env.ENVVAR
-        this.env = job.env
-        this.params = job.params
-
         // keep a copy of the config map
         this.config = config.clone()
     }
@@ -28,7 +24,7 @@ class MultistreamMoleculePipeline implements Serializable {
 
         // Set debug bool, OASIS_PIPELINE_DEBUG value takes precedence over config.debug
         // toBoolean is used in case the input value is, for some reason, a string 'true' or 'false'
-        config.debug = getKey(params, 'OASIS_PIPELINE_DEBUG', getKey(config, 'debug', false)).toBoolean()
+        config.debug = getKey(job.params, 'OASIS_PIPELINE_DEBUG', getKey(config, 'debug', false)).toBoolean()
 
         // don't parallelize by default
         config.parallelize = getKey(config, 'parallelize', false)
@@ -151,11 +147,11 @@ class MultistreamMoleculePipeline implements Serializable {
         try {
             preCheckoutHook()
             updateGitlabStages Checkout: 'running'
-            job.dir("${env.WORKSPACE}/.upstream") {
+            job.dir("${job.env.WORKSPACE}/.upstream") {
                 job.oasis.checkoutAnyBranch(config.upstream_git_url, 'github', config.upstream_git_branch)
             }
             if (config.downstream_git_url != null) {
-                job.dir("${env.WORKSPACE}/.downstream") {
+                job.dir("${job.env.WORKSPACE}/.downstream") {
                     job.oasis.checkoutAnyBranch(config.downstream_git_url, 'gitlab', config.downstream_git_branch)
                 }
             }
@@ -170,11 +166,11 @@ class MultistreamMoleculePipeline implements Serializable {
         try {
             prePrepareHook()
             if (config.downstream_git_url == null) {
-                job.sh "mv '${env.WORKSPACE}/.upstream' '${env.WORKSPACE}/${config.molecule_role_name}'"
+                job.sh "mv '${job.env.WORKSPACE}/.upstream' '${job.env.WORKSPACE}/${config.molecule_role_name}'"
             } else {
                 job.dir(config.molecule_role_name) {
-                    job.sh "cp -r '${env.WORKSPACE}/.upstream/'* ."
-                    job.sh "cp -r '${env.WORKSPACE}/.downstream/'* ."
+                    job.sh "cp -r '${job.env.WORKSPACE}/.upstream/'* ."
+                    job.sh "cp -r '${job.env.WORKSPACE}/.downstream/'* ."
                 }
             }
             job.dir(config.molecule_role_name) {
@@ -208,7 +204,7 @@ class MultistreamMoleculePipeline implements Serializable {
             // means that the failed_scenarios state tracking is easier.
             def test_scenario = {scenario ->
                 job.stage("Scenario ${scenario}") {
-                    def scenario_env = ["MOLECULE_EPHEMERAL_DIRECTORY=${env.WORKSPACE}/.molecule/${scenario}"]
+                    def scenario_env = ["MOLECULE_EPHEMERAL_DIRECTORY=${job.env.WORKSPACE}/.molecule/${scenario}"]
                     try {
                         job.dir(config.molecule_role_name) {
                             job.withEnv(scenario_env) {
