@@ -12,8 +12,9 @@ class MultistreamMoleculePipeline implements Serializable {
         // to the globals (job steps, etc) available to the job itself
         this.job = job
 
-        // lazy alias so we can just env.ENVVAR instead of job.env.ENVVAR
+        // lazy aliases so we can e.g. env.ENVVAR instead of job.env.ENVVAR
         this.env = job.env
+        this.params = job.params
 
         // keep a copy of the config map
         this.config = config.clone()
@@ -27,23 +28,23 @@ class MultistreamMoleculePipeline implements Serializable {
 
         // Set debug bool, OASIS_PIPELINE_DEBUG value takes precedence over config.debug
         // toBoolean is used in case the input value is, for some reason, a string 'true' or 'false'
-        config.debug = job.params.get('OASIS_PIPELINE_DEBUG', config.get('debug', false)).toBoolean()
+        config.debug = getKey(params, 'OASIS_PIPELINE_DEBUG', getKey(config, 'debug', false)).toBoolean()
 
         // don't parallelize by default
-        config.parallelize = config.get('parallelize', false)
+        config.parallelize = getKey(config, 'parallelize', false)
 
         // Specify the molecule role name (effectively the name of the dir that the
         // upstream and downstream repos are combined into), default to the job's base name.
-        config.molecule_role_name = config.get('molecule_role_name', job.env.JOB_BASE_NAME)
+        config.molecule_role_name = getKey(config, 'molecule_role_name', job.env.JOB_BASE_NAME)
 
         // Similar to upstream/downstream git urls, make it easy to override the branches checked out.
         // Defaults to the 'triggerBranch' return, which will either be master or the triggering change
-        config.upstream_git_branch = config.get('upstream_git_branch', job.oasis.triggerBranch('github'))
-        config.downstream_git_branch = config.get('downstream_git_branch', job.oasis.triggerBranch('gitlab'))
+        config.upstream_git_branch = getKey(config, 'upstream_git_branch', job.oasis.triggerBranch('github'))
+        config.downstream_git_branch = getKey(config, 'downstream_git_branch', job.oasis.triggerBranch('gitlab'))
 
         // No gitlab is updated by default for the checkout and test phases. Set this to the name of your
         // gitlab connection if you want to update gitlab with stage statuses.
-        config.gitlab_connection = config.get('gitlab_connection', false)
+        config.gitlab_connection = getKey(config, 'gitlab_connection', false)
 
         // Pipeline step hooks, usually empty closures by default.
         // Allow the definition of "pre" hooks for each stage, and "post" hooks for test and cleanup.
@@ -54,6 +55,13 @@ class MultistreamMoleculePipeline implements Serializable {
         hookDefault('preTestHook')
         hookDefault('postTestHook')
         hookDefault('cleanupHook')
+    }
+
+    def getKey(map, key, defaultValue) {
+        // return the value for a given key, or the default value if the key is unset
+        // explictly avoids mutating the map when getting the value for a key, apologies
+        // if this is already implemented as a builtin somewhere
+        return map.containsKey(key) ? map.get(key) : defaultValue
     }
 
     def hookDefault(key) {
