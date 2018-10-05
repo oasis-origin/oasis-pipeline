@@ -84,26 +84,6 @@ The role name under test is assumed to be the job's base name, so if the job is 
 If you'd like to make a test job, create a new Jenkins folder to contain it rather than
 naming the job something that will differ from what molecule expects the role name to be.
 
-### Git URL generation from path fragment
-
-In addition to explicitly defining the git URLs, a git path fragment can be used, where
-a path fragment consists of `namespace/repo`. This is useful in the case where you
-have a project that has the same namespace and repository name both upstream and down.
-
-Building off of the example above, we can see that the upstream and downstream URLs
-both have the git path fragment `namespace/project`. Since they use the same fragment,
-we can use the git url generation feature:
-
-```groovy
-library('oasis-pipeline')
-
-oasisMultistreamMoleculePipeline {
-    molecule_scenarios = ['default']
-    upstream_git_url = 'https://github.com/oasis-roles/project.git'
-    downstream_git_url = 'https://downstream.git.provider/path/to/oasis-roles/project.git'
-}
-```
-
 ### Job configuration options
 
 These are all the supported config variable you can use inside the
