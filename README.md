@@ -92,10 +92,6 @@ These are all the supported config variable you can use inside the
 - `molecule_scenarios`: **Required** - An array of molecule scenarios to test.
 - `molecule_role_name`: Name of the molecule role under test. Defaults to
   the job base name (`JOB_BASE_NAME` envvar in jenkins)
-- `molecule_destroy_on_failure`: Whether or not to destroy molecule resources
-  if the job is not successful. Defaults to `true`. Set to `false` to prevent
-  destroying instances used in failed molecule scenariosfor post-run debugging.
-  *You are responsible for cleaning up any resources left over after the run.*
 - `upstream_git_url`: URL of upstream git repo to clone and test.
 - `upstream_git_branch`: Specific upstream branch to test. Defaults to `master`
 - `downstream_git_url`: URL of downstream overlay git repo to clone and test.
@@ -103,7 +99,8 @@ These are all the supported config variable you can use inside the
 - `downstream_git_branch`: Specific downstream branch to test. Defaults to `master`
 - `parallelize`: If `true`, parallelize scenario testing. Defaults to `false`.
 - `debug`: If `true`, molecule will be run in debug mode, and instances will not be
-  destroyed if a molecule scenario fails. Defaults to `false`.
+  destroyed if a molecule scenario fails. Defaults to `false`. *You are responsible
+  for cleaning up any resources left over after the run.*
 
 ### Debug Mode
 
