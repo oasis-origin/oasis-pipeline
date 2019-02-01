@@ -9,8 +9,10 @@ def call(String name, List packages=[]) {
 	      . '${path}/bin/activate'
 	      curl https://bootstrap.pypa.io/get-pip.py | python
 	      '${path}/bin/python' '${path}/bin/pip' install -U setuptools
-    """
-    if ( packages ) {
-	    sh "'${path}/bin/python' '${path}/bin/pip' install ${packages.join(' ')}"
-    }
+	"""
+	if ( packages ) {
+		// wrap individual packages in single-quotes
+		def quoted_packages = packages.collect {"'${it}'"}
+		sh "'${path}/bin/python' '${path}/bin/pip' install -U ${quoted_packages.join(' ')}"
+	}
 }
