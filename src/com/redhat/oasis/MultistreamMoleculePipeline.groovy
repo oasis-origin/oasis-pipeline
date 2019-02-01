@@ -178,7 +178,7 @@ class MultistreamMoleculePipeline implements Serializable {
                 // decorator is explicitly included because openstacksdk's requirements (at this time)
                 // depend on a minimum version that is too low for the interfaces they use.
                 // https://github.com/oasis-origin/oasis-pipeline/issues/1 for details.
-                job.virtualenv('.venv', ['ansible', 'molecule', 'shade', 'openstacksdk', 'decorator'])
+                job.virtualenv('.venv', ['ansible', 'molecule', 'shade', 'openstacksdk', 'decorator>=4'])
 
                 // Also install and additional python/galaxy deps listed in the repo
                 if (job.fileExists('requirements.txt')) {
