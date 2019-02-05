@@ -26,6 +26,9 @@ class MultistreamMoleculePipeline implements Serializable {
         // toBoolean is used in case the input value is, for some reason, a string 'true' or 'false'
         config.debug = getKey(job.params, 'OASIS_PIPELINE_DEBUG', getKey(config, 'debug', false)).toBoolean()
 
+        // properties array to allow users to pass in their own properties, such as triggers
+        config.properties = getKey(config, 'properties', [])
+
         // don't parallelize by default
         config.parallelize = getKey(config, 'parallelize', false)
 
@@ -77,8 +80,11 @@ class MultistreamMoleculePipeline implements Serializable {
 
         // set the gitlab connection if configured to do so
         if (config.gitlab_connection) {
-            job.properties([job.gitLabConnection(config.gitlab_connection)])
+            config.properties.add(job.gitLabConnection(config.gitlab_connection))
         }
+
+        // Add properties to job
+        job.properties(config.properties)
 
         // Run through stages in their expected order
         try {
