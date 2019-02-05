@@ -52,7 +52,11 @@ def triggerBranch(flavor) {
 
     // All remotes are assumed to be "origin".
     if (flavor == 'github' && env.ghprbPullId != null) {
+        // ghprb support
         branch = 'origin/pr/' + env.ghprbPullId
+    } else if (flavor == 'github' && env.CHANGE_ID != null) {
+        // branch api support, for single branch builds in org folders
+        branch = 'origin/pr/' + env.CHANGE_ID
     } else if (flavor == 'gitlab' && env.gitlabMergeRequestIid != null) {
         branch = 'origin/mr/' + env.gitlabMergeRequestIid
     } else {
