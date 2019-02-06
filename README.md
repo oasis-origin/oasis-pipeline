@@ -97,6 +97,8 @@ These are all the supported config variable you can use inside the
 - `downstream_git_url`: URL of downstream overlay git repo to clone and test.
   Set to `null` if the role under test has no downstream repository.
 - `downstream_git_branch`: Specific downstream branch to test. Defaults to `master`
+- `properties`: A list of job properties to add, corresponding to the `properties`
+  step of a normal pipeline job. Defaults to empty list.
 - `parallelize`: If `true`, parallelize scenario testing. Defaults to `false`.
 - `debug`: If `true`, molecule will be run in debug mode, and instances will not be
   destroyed if a molecule scenario fails. Defaults to `false`. *You are responsible
