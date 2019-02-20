@@ -2,8 +2,6 @@
 
 This is a [Pipeline Shared Library](https://jenkins.io/doc/book/pipeline/shared-libraries/)
 
-**Jenkinsfiles using this library must live in downstream repositories only.**
-
 Some functions defined in this shared library duplicate the functions available in the
 [jenkinsfile-helpers](https://github.com/oasis-origin/jenkinsfile-helpers) repo. This library
 expects to made available on a jenkins server with the name `oasis-pipeline`. Using any other name
