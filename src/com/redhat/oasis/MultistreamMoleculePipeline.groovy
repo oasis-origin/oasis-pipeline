@@ -4,7 +4,6 @@ package com.redhat.oasis
 // need arises to expand and classify common behaviors, we can do that.
 class MultistreamMoleculePipeline implements Serializable {
     def job
-    def env
     def config
 
     def MultistreamMoleculePipeline(job, config) {
@@ -49,6 +48,7 @@ class MultistreamMoleculePipeline implements Serializable {
         hookDefault('preCheckoutHook')
         hookDefault('prePrepareHook')
         hookDefault('preTestHook')
+        hookDefault('preScenarioHook')
         hookDefault('postTestHook')
         hookDefault('cleanupHook')
     }
@@ -62,9 +62,10 @@ class MultistreamMoleculePipeline implements Serializable {
 
     def hookDefault(key) {
         // Encapsulates the logic of ensuring a default closure supporting the oasis pipeline hook
-        // interface (it takes a "config" arg) exists for a given config key.
+        // interface exists for a given config key. The default closure takes a 'config' arg, followed
+        // by any number of "varargs", to allow any hook to take as many arguments as needed.
         if (!config.containsKey(key)) {
-            config[key] = {job.println "${key} not implemented"}
+            config[key] = {config, ...args -> job.println "${key} not implemented"}
         } // else config[key] is already set, and we trust that the caller made it a closure.
     }
 
@@ -113,6 +114,20 @@ class MultistreamMoleculePipeline implements Serializable {
         if (config.gitlab_connection) {
             for (entry in stage_states) {
                 job.updateGitlabCommitStatus name: entry.key, state: entry.value
+            }
+        }
+    }
+
+    def molecule(scenario, args_str) {
+        // classify common molecule caller for DRYness, and also to provide
+        // a way to hand a molecule runner off to hooks
+        def debug = (config.debug) ? ' --debug' : ''
+        def scenario_env = [
+            "MOLECULE_EPHEMERAL_DIRECTORY=${job.env.WORKSPACE}/.molecule/${scenario}"
+        ]
+        job.dir(config.molecule_role_name) {
+            job.withEnv(scenario_env) {
+                job.venvSh('.venv', ["molecule${debug} ${args_str} -s ${scenario}"])
             }
         }
     }
@@ -199,7 +214,6 @@ class MultistreamMoleculePipeline implements Serializable {
             preTestHook()
             updateGitlabStages Test: 'running'
             // include the trailing space when the ternary conditional evals true
-            def debug = (config.debug) ? '--debug ' : ''
             def failed_scenarios = []
 
             // Create a closure for the actual testing, so that it's easy to pivot between parallel
@@ -207,13 +221,9 @@ class MultistreamMoleculePipeline implements Serializable {
             // means that the failed_scenarios state tracking is easier.
             def test_scenario = {scenario ->
                 job.stage("Scenario ${scenario}") {
-                    def scenario_env = ["MOLECULE_EPHEMERAL_DIRECTORY=${job.env.WORKSPACE}/.molecule/${scenario}"]
                     try {
-                        job.dir(config.molecule_role_name) {
-                            job.withEnv(scenario_env) {
-                                job.venvSh('.venv', ["molecule ${debug}test --destroy never -s ${scenario}"])
-                            }
-                        }
+                        preScenarioHook(scenario)
+                        molecule(scenario, 'test --destroy never')
                     } catch (err) {
                         // This ensures that failing scenarios don't block the testing of other scenarios,
                         // even in sequential execution, giving the user as complete a picture of the molecule
@@ -226,11 +236,7 @@ class MultistreamMoleculePipeline implements Serializable {
                         // This takes advantage of logical 'or' short-circuiting:
                         // http://groovy-lang.org/operators.html#_short_circuiting
                         if (!failed_scenarios.contains(scenario) || !config.debug) {
-                            job.dir(config.molecule_role_name) {
-                                job.withEnv(scenario_env) {
-                                    job.venvSh('.venv', ["molecule ${debug}destroy -s ${scenario}"])
-                                }
-                            }
+                            molecule(scenario, 'destroy')
                         }
                     }
                 }
@@ -264,28 +270,52 @@ class MultistreamMoleculePipeline implements Serializable {
     }
 
     // hooks are closures declared at runtime by the calling user in the config mapping.
-    // These methods are included here just to classify the intended invocation of them.
+    // These methods are included here to classify the intended invocation of them, and
+    // handle printing out the hook call so they're easy to spot in the log.
     def preSetUpHook() {
-        return config.preSetUpHook(config)
+        job.echo('Running preSetUpHook')
+        config.preSetUpHook(config)
     }
 
     def preCheckoutHook() {
-        return config.preCheckoutHook(config)
+        job.echo('Running preCheckoutHook')
+        config.preCheckoutHook(config)
     }
 
     def prePrepareHook() {
-        return config.prePrepareHook(config)
+        job.echo('Running prePrepareHook')
+        config.prePrepareHook(config)
     }
 
     def preTestHook() {
-        return config.preTestHook(config)
+        job.echo('Running preTestHook')
+        config.preTestHook(config)
+    }
+
+    def preScenarioHook(scenario) {
+        job.echo("Running preScenarioHook for scenario: ${scenario}")
+        if (config.preScenarioHook.maximumNumberOfParameters == 2) {
+            // short out if the hook is hookDefault. In this case, the two args
+            // are "(config, ...args)".
+            config.preScenarioHook(config)
+        } // else { assume 4-arg hook spec hereafter }
+
+        // wrap the molecule method in a closure to give hook callers the ability
+        // to call the molecule method for the current scenario.
+        def molecule_partial = {args_str ->
+            molecule(scenario, args_str)
+        }
+
+        config.preScenarioHook(config, scenario, molecule_partial)
     }
 
     def postTestHook() {
-        return config.postTestHook(config)
+        job.echo('Running postTestHook')
+        config.postTestHook(config)
     }
 
     def cleanupHook() {
-        return config.cleanupHook(config)
+        job.echo('Running cleanupHook')
+        config.cleanupHook(config)
     }
 }
