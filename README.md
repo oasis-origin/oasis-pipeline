@@ -134,7 +134,10 @@ oasisMultistreamMoleculePipeline {
 
 If you don't want or need to access the config, the `config ->` preamble can be omitted.
 However, even if the `config ->` preamble is omitted, it will still be available using
-the closure's implicit `it` parameter.
+the closure's implicit `it` parameter. Hooks are normal Groovy Closures, so all normal
+Closure behaviors are supported. Since hook closures are defined within the namespace
+of the job definition, arbitrary job steps can also be run, as seen with the "println"
+call in the example above.
 
 #### Available Hooks
 
@@ -148,6 +151,10 @@ the closure's implicit `it` parameter.
   preparation needed as a result of any additions done in the `preCheckoutHook`.
 - `preTestHook`: Run before any other steps in the "Test" stage, for any final preparation needed
   before the molecule test run starts.
+- `preScenarioHook`: Run before each molecule scenario is tested. Takes two args in
+  addition to `config`: `scenario` and `molecule`. `scenario` is the name of the scenario
+  about to be tested, and `molecule` is a callable that will run molecule in the job environment
+  with the given molecule args string. See example usage below.
 
 "post" stage hooks:
 
@@ -159,6 +166,52 @@ the closure's implicit `it` parameter.
 
 - `cleanupHook`: Runs unconditionally after every job run, regardless of job result,
   and unrelated to any stage.
+
+#### preScenarioHook
+
+All hooks receive the `config` dict as the first argument, but to facilitate customizing
+specific scenario testing, the `preScenarioHook` also takes the scenario name, and a
+`molecule` caller to facilitate running molecule subcommands targeting the current scenario.
+
+Usage Example, to install scenario dependencies before a scenario is run:
+
+```groovy
+oasisMoleculePipeline {
+    ...
+    preScenarioHook = {config, scenario, molecule ->
+        // Run an arbitrary job step
+        println("Preinstalling dependencies for ${scenario}")
+
+        // Run a molecule subcommand in the current molecule scenario environment:
+        // This will run molecule in the current job's python virtualenv,
+        // with the correct environment variables to ensure a molecule
+        // ephermal dir that is used only by the current job and scenario.
+        // The --debug flag will be added if config.debug is true.
+        // This will expand to:
+        //   "molecule dependency -s ${scenario}"
+        molecule('dependency')
+    }
+}
+```
+
+Since hooks are passed the scenario name, it is possible to take specific
+steps for specific scenarios, if desired:
+
+```groovy
+oasisMoleculePipeline {
+    ...
+    molecule_scenarios = ['first_scenario', 'second_scenario']
+    // fail fast on lint and syntax check before running any tests
+    // you could potentially omit lint and syntax from scenario sequences
+    // by explicitly testing them on the first scenario
+    preScenarioHook = {config, scenario, molecule ->
+        if (scenario == config.molecule_scenarios.first()) {
+            println("Running lint and syntax check for role")
+            molecule('lint')
+            molecule('syntax')
+        }
+    }
+```
 
 ### Jenkinsfile Full Example
 
@@ -212,6 +265,7 @@ oasisMultistreamMoleculePipeline {
     preCheckoutHook = { config -> }
     prePrepareHook = { config -> }
     preTestHook = { config -> }
+    preScenarioHook = { config, scenario, molecule -> }
     postTestHook = { config -> }
     postCheckoutHook = { config -> }
     cleanupHook = { config -> }
