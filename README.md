@@ -33,7 +33,7 @@ All vars exposed in this library should be available in the global scope.
 ### Optional Plugins
 
 - [`gitlab-plugin`](https://plugins.jenkins.io/gitlab-plugin) for gitlab merge request support
-- [`ghprb`](https://plugins.jenkins.io/ghprb) for github pull request support
+- [`github-branch-source`](https://plugins.jenkins.io/github-branch-source) for github pull request support
 
 ### Adding the library to Jenkins
 
