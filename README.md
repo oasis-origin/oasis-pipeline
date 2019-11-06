@@ -171,7 +171,7 @@ call in the example above.
 
 All hooks receive the `config` dict as the first argument, but to facilitate customizing
 specific scenario testing, the `preScenarioHook` also takes the scenario name, and a
-`molecule` caller to facilitate running molecule subcommands targeting the current scenario.
+`molecule` closure to facilitate running molecule subcommands targeting the current scenario.
 
 Usage Example, to install scenario dependencies before a scenario is run:
 
@@ -189,7 +189,7 @@ oasisMoleculePipeline {
         // The --debug flag will be added if config.debug is true.
         // This will expand to:
         //   "molecule dependency -s ${scenario}"
-        molecule('dependency')
+        molecule.call('dependency')
     }
 }
 ```
@@ -207,11 +207,16 @@ oasisMoleculePipeline {
     preScenarioHook = {config, scenario, molecule ->
         if (scenario == config.molecule_scenarios.first()) {
             println("Running lint and syntax check for role")
-            molecule('lint')
-            molecule('syntax')
+            molecule.call('lint')
+            molecule.call('syntax')
         }
     }
 ```
+
+Note that the explicit `Closure.call` syntax isused with the molecule closure.
+This is done to avoid a false-positive pipeline CPS method mismatch warning,
+[as documented here](https://jenkins.io/redirect/pipeline-cps-method-mismatches/)
+under "False Positives".
 
 ### Jenkinsfile Full Example
 
@@ -221,7 +226,7 @@ This example includes all configuration options with annotations in comments.
 library('oasis-pipeline')
 
 oasisMultistreamMoleculePipeline {
-    // Required, otherwise molecule won't run. Must be an iterable of strings (String[])
+    // Optional, defaults to ['default']. Must be an iterable of strings (String[])
     // Values here are the scenario name, as specified in molecule.yml
     molecule_scenarios = ['scenario_1', 'scenario_2']
 

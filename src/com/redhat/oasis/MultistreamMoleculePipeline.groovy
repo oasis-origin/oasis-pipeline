@@ -35,6 +35,9 @@ class MultistreamMoleculePipeline implements Serializable {
         // upstream and downstream repos are combined into), default to the job's base name.
         config.molecule_role_name = getKey(config, 'molecule_role_name', job.env.JOB_BASE_NAME)
 
+        // If the scenarios array is unset, default the same way molecule does
+        config.molecule_scenarios = getKey(config, 'molecule_scenarios', ['default'])
+
         // Similar to upstream/downstream git urls, make it easy to override the branches checked out.
         // Defaults to the 'triggerBranch' return, which will either be master or the triggering change
         config.upstream_git_branch = getKey(config, 'upstream_git_branch', job.oasis.triggerBranch('github'))
@@ -280,22 +283,22 @@ class MultistreamMoleculePipeline implements Serializable {
     // handle printing out the hook call so they're easy to spot in the log.
     def preSetUpHook() {
         job.echo('Running preSetUpHook')
-        config.preSetUpHook(config)
+        config.preSetUpHook.call(config)
     }
 
     def preCheckoutHook() {
         job.echo('Running preCheckoutHook')
-        config.preCheckoutHook(config)
+        config.preCheckoutHook.call(config)
     }
 
     def prePrepareHook() {
         job.echo('Running prePrepareHook')
-        config.prePrepareHook(config)
+        config.prePrepareHook.call(config)
     }
 
     def preTestHook() {
         job.echo('Running preTestHook')
-        config.preTestHook(config)
+        config.preTestHook.call(config)
     }
 
     def preScenarioHook(scenario) {
@@ -303,7 +306,7 @@ class MultistreamMoleculePipeline implements Serializable {
         if (config.preScenarioHook.maximumNumberOfParameters == 2) {
             // short out if the hook is hookDefault. In this case, the two args
             // are "(config, ...args)".
-            config.preScenarioHook(config)
+            config.preScenarioHook.call(config)
         } // else { assume 4-arg hook spec hereafter }
 
         // wrap the molecule method in a closure to give hook callers the ability
@@ -317,11 +320,11 @@ class MultistreamMoleculePipeline implements Serializable {
 
     def postTestHook() {
         job.echo('Running postTestHook')
-        config.postTestHook(config)
+        config.postTestHook.call(config)
     }
 
     def cleanupHook() {
         job.echo('Running cleanupHook')
-        config.cleanupHook(config)
+        config.cleanupHook.call(config)
     }
 }
