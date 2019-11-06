@@ -35,6 +35,9 @@ class MultistreamMoleculePipeline implements Serializable {
         // upstream and downstream repos are combined into), default to the job's base name.
         config.molecule_role_name = getKey(config, 'molecule_role_name', job.env.JOB_BASE_NAME)
 
+        // If the scenarios array is unset, default the same way molecule does
+        config.molecule_scenarios = getKey(config, 'molecule_scenarios', ['default'])
+
         // Similar to upstream/downstream git urls, make it easy to override the branches checked out.
         // Defaults to the 'triggerBranch' return, which will either be master or the triggering change
         config.upstream_git_branch = getKey(config, 'upstream_git_branch', job.oasis.triggerBranch('github'))
