@@ -315,7 +315,7 @@ class MultistreamMoleculePipeline implements Serializable {
             molecule(scenario, args_str)
         }
 
-        config.preScenarioHook(config, scenario, molecule_partial)
+        config.preScenarioHook.call(config, scenario, molecule_partial)
     }
 
     def postTestHook() {
