@@ -135,8 +135,10 @@ class MultistreamMoleculePipeline implements Serializable {
             "MOLECULE_EPHEMERAL_DIRECTORY=${job.env.WORKSPACE}/.molecule/${scenario}"
         ]
         job.dir(config.molecule_role_name) {
-            job.withEnv(scenario_env) {
-                job.venvSh('.venv', ["molecule${debug} ${args_str} -s ${scenario}"])
+            job.ansiColor('xterm') {
+                job.withEnv(scenario_env) {
+                    job.venvSh('.venv', ["molecule${debug} ${args_str} -s ${scenario}"])
+                }
             }
         }
     }
